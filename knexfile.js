@@ -1,7 +1,9 @@
-const { loadEnvConfig } = require('@next/env')
+const { loadEnvConfig } = require('@next/env');
 
-const dev = process.env.NODE_ENV !== 'production'
-const { PG_URI } = loadEnvConfig('./', dev).combinedEnv
+const dev = process.env.NODE_ENV !== 'production';
+const { PG_URI } = loadEnvConfig('./', dev).combinedEnv;
+
+console.log(PG_URI);
 
 module.exports = {
   client: 'pg',
@@ -12,4 +14,4 @@ module.exports = {
   seeds: {
     directory: './knex/seeds',
   },
-}
+};

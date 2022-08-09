@@ -1,16 +1,62 @@
-import { useEffect, useState } from 'react'
-import Head from 'next/head'
+import { useEffect, useState } from 'react';
+import Head from 'next/head';
+import { useSession, signIn, signOut } from 'next-auth/react';
+import { NextResponse } from 'next/server';
+
 
 export default function Home() {
-  const [todos, setTodos] = useState()
+  const [todos, setTodos] = useState();
+  const [list, setList] = useState([]);
+  const { data: session } = useSession();
+
   useEffect(() => {
     async function loadTodos() {
-      const resp = await fetch('/api/todos')
-      const data = await resp.json()
-      setTodos(data)
+      const resp = await fetch('/api/todos');
+      const data = await resp.json();
+      setTodos(data);
     }
-    loadTodos()
-  }, [])
+    loadTodos();
+  }, []);
+
+  const getSavedArtists = async () => {
+    const res = await fetch('/api/saved_artists');
+    let json = await res.json();
+    let offset = 0;
+    let items = json.items;
+
+    while (after) {
+      console.log({ after });
+      let nextResp = await (await fetch('/api/saved_artists?' + new URLSearchParams({ after }))).json();
+      items.push(...nextResp.artists.items);
+      console.log(nextResp.artists);
+      after = nextResp.artists?.cursors?.after;
+    }
+
+    items.sort((a, b) => a.name.localeCompare(b.name));
+    setList(items);
+
+  };
+
+  const getSavedSongs = async () => {
+    const res = await fetch('/api/saved_songs');
+    let json = await res.json();
+    console.dir(json);
+    let items = json.artists.items;
+    let go = true;
+    let offset = res.items.total;
+    while (go) {
+      let nextResp = await (await fetch('/api/saved_artists?' + new URLSearchParams({ after }))).json();
+      offset += nextResp.items.total;
+      items.push(...nextResp.items);
+      console.log(nextResp);
+      go = nextResp.items.length > 0 ? true : false;
+    }
+
+    items.sort((a, b) => a.name.localeCompare(b.name));
+    setList(items);
+
+  };
+
 
   return (
     <div className="container">
@@ -21,53 +67,34 @@ export default function Home() {
 
       <main>
         <h1 className="title">
-          Welcome to <a href="https://nextjs.org">Next.js with Knex!</a>
+          Welcome to <a href="https://nextjs.org">Monthly Wrapped!</a>
         </h1>
 
-        <h2 className="todos-title">Todos</h2>
-        {!todos && <p className="todos-loading">Todos loading...</p>}
-        {todos &&
-          todos.map((todo) => {
-            return (
-              <p className="todos-item">
-                {todo.text} {todo.done && '(complete)'}
-              </p>
-            )
-          })}
+        {session &&
+          <>
+            Signed in as {session?.token?.email} <br />
+            <button onClick={() => signOut()}>Sign out</button>
+            <hr />
+            <button onClick={() => getSavedSongs()}>Get all my artists</button>
+            <div className="grid">
+              {list.map((item) => (
+                item.images[0]?.url &&
+                <div key={item.id} className="card">
+                  <h3>{item.name}</h3>
+                  <img src={item.images[0]?.url} width="100" align="right" />
+                  <p>{item.genres.join(', ')}</p>
+                </div>
+              ))}
+            </div>
+          </>
+        }
 
-        <p className="description">
-          Get started by editing <code>pages/index.js</code>
-        </p>
-
-        <div className="grid">
-          <a href="https://nextjs.org/docs" className="card">
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className="card">
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className="card"
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className="card"
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
+        {!session &&
+          <>
+            Not signed in <br />
+            <button onClick={() => signIn()}>Sign in</button>
+          </>
+        }
       </main>
 
       <footer>
@@ -248,5 +275,5 @@ export default function Home() {
         }
       `}</style>
     </div>
-  )
+  );
 }
